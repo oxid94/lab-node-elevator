@@ -1,72 +1,125 @@
 var chalk = require('chalk');
 
 class Elevator {
-  constructor(){
-    this.floor      = 0;
-    this.MAXFLOOR   = 10;
+  constructor() {
+    this.floor = 0;
+    this.MAXFLOOR = 10;
     this.waitingList = [];
     this.passengers = [];
-    this.requests   = [];
+    this.requests = [];
     this.interval = undefined;
+    this.direction = "up";
   }
 
-  start() { 
-    this.interval = setInterval( () => this.update() , 1000);
+  start() {
+    this.interval = setInterval(() => this.update(), 1000);
   }
-  stop() { 
+  stop() {
     clearInterval(this.interval);
   }
   update() {
-    let direction = "up";
+    let direction = this.direction;
     let floor = this.floor;
-    if( this.floor < this.requests[0] && this.floor < this.MAXFLOOR) {
-      direction = "up";
-      this.floorUp();
-    } else if( this.floor > this.requests[0] && this.floor > 0) {
-      direction = "down";
-      this.floorDown();
+    let maxFloor = 0;
+    let minFloor = 10;
+
+    if(this.requests.length === 0) {
+      this.stop();
     }
 
-    this._passengersEnter();
-    this._passengersLeave();
+    switch (direction) {
+      case "up":
+        this.requests.map((value, index) => {
+          if (value === floor) {
+            this._passengersEnter(value);
+            this._passengersLeave(value);
+          }
+          if (value > maxFloor) {
+            maxFloor = value;
+          }
+          if (value < minFloor) {
+            minFloor = value;
+          }
+        });
+        this.floorUp();
+        break;
+      case "down":
+        this.requests.map((value, index) => {
+          if (value === floor) {
+            this._passengersEnter(value);
+            this._passengersLeave(value);
+          }
+          if (value < minFloor) {
+            minFloor = value;
+          }
+          if (value > maxFloor) {
+            maxFloor = value;
+          }
+        });
 
-    this.log(direction,floor);
+        this.floorDown();
+        break;
+    }
+    console.log(chalk.red("MAX -> " + maxFloor));
+    console.log(chalk.red("MIN -> " + minFloor));
+    if (floor < minFloor) {
+      this.direction = "up";
+    }
+    else if (floor > maxFloor) {
+      this.direction = "down";
+    }
 
+
+    this.log(direction, floor);
   }
-  _passengersEnter() { 
-    this.waitingList.map( (index, value) => {
-      if(value.originFloor === this.floor) {
-        let waitingPerson = waitingList[index];
-        this.waitingList.splice(index,1);
+  _passengersEnter(elevetorFloor) {
+    this.waitingList.map((value, index) => {
+      if (value.originFloor === elevetorFloor) {
+        let waitingPerson = this.waitingList[index];
+        this.waitingList.splice(index, 1);
         this.passengers.push(waitingPerson);
         this.requests.push(waitingPerson.destinationFloor);
-        this.requests.splice(0,1);
+        this.requests.shift();
         console.log(`${waitingPerson.name} has entered the elevator`);
       }
-    } );
+    });
   }
-  _passengersLeave() { 
-    this.passengers.map( (index, value) => {
-      if(value.destinationFloor === this.floor) {
-        let leavingPerson = passengers[index];
-        this.passengers.splice(index,1);
+  _passengersLeave(elevetorFloor) {
+    this.passengers.map((value, index) => {
+      if (value.destinationFloor === elevetorFloor) {
+        let leavingPerson = this.passengers[index];
+        this.passengers.splice(index, 1);
+        this.requests.shift();
         console.log(`${leavingPerson.name} has left the elevator`);
       }
-    } );
+    });
   }
 
   floorUp() {
-      this.floor+=1;
+    if (this.floor < this.MAXFLOOR)
+      this.floor += 1;
   }
-  floorDown() { 
-      this.floor-=1;
+  floorDown() {
+    if (this.floor > 0)
+      this.floor -= 1;
   }
   call(person) {
     this.waitingList.push(person);
     this.requests.push(person.originFloor);
+    console.log(`Call -> ${person.name}`);
   }
-  log(direction,floor) { 
-    console.log(`Direction: ${direction} | Floor: ${floor} | WaitingPassangers: | Passengers:  | Requests: `);
+  log(direction, floor) {
+
+    let txtRequest = "";
+    this.requests.map((value) => { txtRequest += `${value}, ` });
+
+    let txtPassengers = "";
+    this.passengers.map((value) => { txtPassengers += `${value.name}, ` });
+
+    let txtWaiting = "";
+    this.waitingList.map((value) => { txtWaiting += `${value.name}, ` });
+
+    console.log(chalk.blue('Direction: ') + direction + " | " + chalk.green('Floor: ') + floor + " | " + chalk.magenta("WaitingPassangers: ") + txtWaiting + "| " + chalk.cyan("Passengers: ") + txtPassengers + "| " + chalk.yellow("Requests: ") + txtRequest);
   }
 }
 
